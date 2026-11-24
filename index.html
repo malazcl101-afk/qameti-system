@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<meta name="theme-color" content="#0f6b4f" />
+<meta name="description" content="Qameti System — add members, draw numbers automatically, allot payout months, record monthly entries and generate reports." />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<link rel="icon" href="data:," />
+<title>Qameti System</title>
+<style>
+  :root{
+    --bg:#f4f6f1; --surface:#ffffff; --surface2:#edf1e9; --ink:#16211b; --muted:#5c6a61;
+    --line:#d9e0d4; --accent:#0f6b4f; --accent-ink:#ffffff; --accent-soft:#e2f0e8;
+    --gold:#b07d16; --gold-soft:#f7ecd2; --danger:#b3352c; --danger-soft:#fbe9e7;
+    --paid:#0f6b4f; --pending:#9a6a10;
+    --radius:14px; --shadow:0 1px 2px rgba(20,35,25,.06),0 8px 24px rgba(20,35,25,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0f1411; --surface:#18201b; --surface2:#202a23;
+      --ink:#e9efea; --muted:#9db0a3; --line:#2c3a30; --accent:#35c48d; --accent-ink:#08130d;
+      --accent-soft:#1d3328; --gold:#e0aa3e; --gold-soft:#3a2f16; --danger:#f0857d; --danger-soft:#3d2220;
+      --paid:#35c48d; --pending:#e0aa3e; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+    }
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    line-height:1.5;font-size:16px}
+  button,[role="button"],select,summary,input:not([type="checkbox"],[type="radio"]){min-height:2.25rem}
+  .wrap{max-width:1060px;margin:0 auto;padding:20px 16px 64px}
+  h1,h2,h3{font-family:"Iowan Old Style",Palatino,Georgia,"Times New Roman",serif;font-weight:700;line-height:1.15;margin:0}
+  h1{font-size:clamp(28px,5vw,40px);letter-spacing:-.01em}
+  h2{font-size:21px}
+  h3{font-size:17px}
+  p{margin:0}
+  .lede{color:var(--muted);max-width:62ch;margin-top:8px;font-size:16.5px}
+  .how{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:22px 0 6px}
+  .how div{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow)}
+  .how b{display:block;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+  .how span{font-size:14px;color:var(--muted)}
+  @media (max-width:760px){.how{grid-template-columns:1fr 1fr}}
+  section.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:20px;margin-top:18px}
+  .card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+  .step{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--accent)}
+  .step i{font-style:normal;background:var(--accent);color:var(--accent-ink);width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px;letter-spacing:0}
+  .sub{color:var(--muted);font-size:14.5px;margin-top:4px;max-width:66ch}
+  label{font-size:13.5px;font-weight:600;display:block;margin-bottom:5px}
+  input,select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit;font-size:15px}
+  input:focus,select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+  .grid{display:grid;gap:12px}
+  .grid.c3{grid-template-columns:2fr 1fr 1fr}
+  .grid.c2{grid-template-columns:1fr 1fr}
+  @media (max-width:680px){.grid.c3,.grid.c2{grid-template-columns:1fr}}
+  .btn{appearance:none;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);
+    font:inherit;font-weight:700;font-size:15px;padding:9px 18px;border-radius:11px;cursor:pointer;min-height:44px}
+  .btn:hover{filter:brightness(1.07)}
+  .btn:disabled{opacity:.45;cursor:not-allowed;filter:none}
+  .btn.ghost{background:transparent;color:var(--accent)}
+  .btn.plain{background:var(--surface2);border-color:var(--line);color:var(--ink)}
+  .btn.danger{background:transparent;border-color:var(--danger);color:var(--danger)}
+  .btn.small{min-height:38px;padding:6px 13px;font-size:14px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .tab{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 16px;font:inherit;font-weight:600;font-size:14.5px;cursor:pointer;min-height:40px}
+  .tab.active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+  .stat{background:var(--surface2);border-radius:12px;padding:12px 14px}
+  .stat b{display:block;font-size:21px;font-family:"Iowan Old Style",Palatino,Georgia,serif}
+  .stat span{font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+  @media (max-width:680px){.stats{grid-template-columns:1fr 1fr}}
+  ul.members{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:8px}
+  ul.members li{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:9px 12px;flex-wrap:wrap}
+  .avatar{width:36px;height:36px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex:none}
+  .mname{font-weight:650}
+  .mphone{color:var(--muted);font-size:13.5px}
+  .spacer{flex:1}
+  .iconbtn{border:1px solid var(--line);background:transparent;color:var(--danger);border-radius:9px;width:38px;height:38px;cursor:pointer;font-size:16px;flex:none}
+  table{width:100%;border-collapse:collapse;margin-top:14px;font-size:15px}
+  th{text-align:left;font-size:12.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:8px 10px;border-bottom:2px solid var(--line)}
+  td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle}
+  tr.turn td{background:var(--gold-soft)}
+  .num{display:inline-flex;width:32px;height:32px;border-radius:50%;background:var(--accent);color:var(--accent-ink);align-items:center;justify-content:center;font-weight:800}
+  .pill{display:inline-block;padding:3px 11px;border-radius:999px;font-size:13px;font-weight:700}
+  .pill.paid{background:var(--accent-soft);color:var(--paid)}
+  .pill.pend{background:var(--gold-soft);color:var(--pending)}
+  .pill.payout{background:var(--gold-soft);color:var(--gold)}
+  .toggle{border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:700;font-size:14px;padding:7px 16px;cursor:pointer;min-height:40px;min-width:104px}
+  .toggle.paid{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  .banner{background:var(--gold-soft);border:1px solid var(--gold);border-radius:12px;padding:13px 15px;margin-top:14px;font-size:15px}
+  .banner b{color:var(--gold)}
+  @media (prefers-color-scheme: dark){.banner b{color:var(--gold)}}
+  .report{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:14px;white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.65;overflow-wrap:anywhere}
+  .empty{border:1.5px dashed var(--line);border-radius:12px;padding:22px;text-align:center;color:var(--muted);margin-top:14px;font-size:15px}
+  .note{font-size:13.5px;color:var(--muted);margin-top:12px}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);
+    padding:11px 20px;border-radius:999px;font-weight:600;font-size:14.5px;opacity:0;pointer-events:none;transition:.25s;z-index:50;max-width:92vw;text-align:center}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .monthnav{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px}
+  .monthnav select{width:auto;min-width:190px}
+  .navbtn{width:44px;height:44px;border-radius:11px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:18px;cursor:pointer}
+  .checkline{display:flex;gap:10px;align-items:center;margin-top:14px;font-size:15px;font-weight:600}
+  .checkline input{width:22px;height:22px;accent-color:var(--accent)}
+  footer{margin-top:26px;color:var(--muted);font-size:13.5px;text-align:center}
+  @media (prefers-reduced-motion: reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Qameti System</h1>
+  <p class="lede">Run a savings committee (qameti / ROSCA) without paperwork. Add your members, let the system draw numbers and allot each member a payout month automatically, record the monthly entries, and get a clean report for every month.</p>
+
+  <div class="how">
+    <div><b>Step 1</b><span>Create a qameti and set the monthly amount.</span></div>
+    <div><b>Step 2</b><span>Add all members who will take part.</span></div>
+    <div><b>Step 3</b><span>Draw numbers — months are allotted automatically.</span></div>
+    <div><b>Step 4</b><span>Mark monthly entries and generate the report.</span></div>
+  </div>
+
+  <!-- STEP 1 : CREATE -->
+  <section class="card" aria-labelledby="h-create">
+    <div class="card-head">
+      <div>
+        <span class="step"><i>1</i> Create a Qameti</span>
+        <h2 id="h-create" style="margin-top:6px">Committee setup</h2>
+        <p class="sub">One qameti = one full cycle. If you add 10 members, the cycle runs for 10 months and every member receives the full pool once.</p>
+      </div>
+    </div>
+    <form id="createForm" class="grid c3">
+      <div>
+        <label for="cName">Qameti name</label>
+        <input id="cName" type="text" placeholder="e.g. Office Friends Qameti" required maxlength="60" />
+      </div>
+      <div>
+        <label for="cAmount">Amount per member / month (Rs)</label>
+        <input id="cAmount" type="number" min="1" step="any" placeholder="e.g. 5000" required />
+      </div>
+      <div>
+        <label for="cStart">First month</label>
+        <input id="cStart" type="month" required />
+      </div>
+      <div class="row" style="grid-column:1/-1">
+        <button class="btn" type="submit">Create Qameti</button>
+      </div>
+    </form>
+    <div id="committeeTabs" class="tabs" aria-label="Your qametis"></div>
+    <div id="noCommittee" class="empty">No qameti yet. Create your first one above to get started.</div>
+    <div id="committeeStats" class="stats" hidden>
+      <div class="stat"><span>Members</span><b id="stMembers">0</b></div>
+      <div class="stat"><span>Per member / month</span><b id="stAmount">Rs 0</b></div>
+      <div class="stat"><span>Monthly pool (payout)</span><b id="stPool">Rs 0</b></div>
+      <div class="stat"><span>Cycle length</span><b id="stCycle">0 months</b></div>
+    </div>
+    <div class="row" id="committeeActions" hidden style="margin-top:14px">
+      <button class="btn danger small" id="deleteCommittee" type="button">Delete this qameti</button>
+    </div>
+  </section>
+
+  <!-- STEP 2 : MEMBERS -->
+  <section class="card" aria-labelledby="h-members" id="membersCard" hidden>
+    <div class="card-head">
+      <div>
+        <span class="step"><i>2</i> Members</span>
+        <h2 id="h-members" style="margin-top:6px">Add members</h2>
+        <p class="sub">Add everyone taking part before the draw. Phone numbers are optional and only help you follow up.</p>
+      </div>
+    </div>
+    <form id="memberForm" class="grid c2">
+      <div>
+        <label for="mName">Member name</label>
+        <input id="mName" type="text" placeholder="e.g. Ahmed Raza" required maxlength="60" />
+      </div>
+      <div>
+        <label for="mPhone">Phone (optional)</label>
+        <input id="mPhone" type="tel" placeholder="e.g. 03xx xxxxxxx" maxlength="20" />
+      </div>
+      <div class="row" style="grid-column:1/-1">
+        <button class="btn" type="submit">Add Member</button>
+        <span class="note" id="memberCount" style="margin-top:0"></span>
+      </div>
+    </form>
+    <ul class="members" id="memberList"></ul>
+    <div id="noMembers" class="empty">No members added yet.</div>
+  </section>
+
+  <!-- STEP 3 : DRAW -->
+  <section class="card" aria-labelledby="h-draw" id="drawCard" hidden>
+    <div class="card-head">
+      <div>
+        <span class="step"><i>3</i> Number Draw</span>
+        <h2 id="h-draw" style="margin-top:6px">Draw numbers &amp; allot months</h2>
+        <p class="sub">The system shuffles all members fairly and assigns numbers 1, 2, 3… Number 1 receives the payout in the first month, number 2 in the second month, and so on.</p>
+      </div>
+      <div class="row">
+        <button class="btn" id="drawBtn" type="button">Draw Numbers</button>
+        <button class="btn ghost" id="redrawBtn" type="button" hidden>Re-draw</button>
+      </div>
+    </div>
+    <div id="noDraw" class="empty">Add at least 2 members, then press “Draw Numbers”.</div>
+    <div id="scheduleWrap" hidden>
+      <table aria-label="Payout schedule">
+        <thead><tr><th>Number</th><th>Member</th><th>Payout month</th><th>Payout amount</th></tr></thead>
+        <tbody id="scheduleBody"></tbody>
+      </table>
+      <p class="note">Every member pays every month. In each month, one member — whose number comes up — receives the full pool.</p>
+    </div>
+  </section>
+
+  <!-- STEP 4 : MONTHLY ENTRY -->
+  <section class="card" aria-labelledby="h-entry" id="entryCard" hidden>
+    <div class="card-head">
+      <div>
+        <span class="step"><i>4</i> Monthly Entry</span>
+        <h2 id="h-entry" style="margin-top:6px">Record this month’s payments</h2>
+        <p class="sub">Pick a month, tap “Paid” for each member who has paid, and confirm when the payout is handed over.</p>
+      </div>
+      <button class="btn plain small" id="markAllBtn" type="button">Mark all paid</button>
+    </div>
+    <div class="monthnav">
+      <button class="navbtn" id="prevMonth" type="button" aria-label="Previous month">‹</button>
+      <select id="monthSelect" aria-label="Select month"></select>
+      <button class="navbtn" id="nextMonth" type="button" aria-label="Next month">›</button>
+    </div>
+    <div class="banner" id="payoutBanner"></div>
+    <label class="checkline"><input type="checkbox" id="payoutDone" /> Payout handed over to this member</label>
+    <ul class="members" id="entryList"></ul>
+    <div class="stats">
+      <div class="stat"><span>Expected</span><b id="enExpected">Rs 0</b></div>
+      <div class="stat"><span>Collected</span><b id="enCollected">Rs 0</b></div>
+      <div class="stat"><span>Still pending</span><b id="enPending">Rs 0</b></div>
+      <div class="stat"><span>Members paid</span><b id="enCount">0 / 0</b></div>
+    </div>
+  </section>
+
+  <!-- STEP 5 : REPORT -->
+  <section class="card" aria-labelledby="h-report" id="reportCard" hidden>
+    <div class="card-head">
+      <div>
+        <span class="step"><i>5</i> Report</span>
+        <h2 id="h-report" style="margin-top:6px">Monthly report</h2>
+        <p class="sub">The report updates live from the monthly entry above. Copy it to share on WhatsApp, or download it as a file.</p>
+      </div>
+      <div class="row">
+        <button class="btn" id="copyReport" type="button">Copy Report</button>
+        <button class="btn ghost" id="downloadReport" type="button">Download .txt</button>
+        <button class="btn plain" id="fullReportBtn" type="button">Full Cycle Report</button>
+      </div>
+    </div>
+    <div class="report" id="reportText" aria-live="polite"></div>
+  </section>
+
+  <footer>
+    Tip: on your phone, use the browser menu → “Add to Home screen” to keep the Qameti System one tap away, like an app.<br/>
+    Your data is saved on this device — your qametis, members and entries will be here when you reopen this page.
+  </footer>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+  "use strict";
+  var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  var STORAGE_KEY = "qameti-system-v1";
+  var state = { committees: [], activeId: null, activeMonth: 0, showFull: false };
+  var uid = 1;
+
+  function saveState(){
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        committees: state.committees,
+        activeId: state.activeId,
+        activeMonth: state.activeMonth,
+        showFull: state.showFull,
+        uid: uid
+      }));
+    } catch(e) {}
+  }
+  function loadState(){
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      var data = JSON.parse(raw);
+      if (!data || !Array.isArray(data.committees)) return;
+      state.committees = data.committees.map(function(c){
+        return {
+          id: c.id,
+          name: c.name || "",
+          amount: Number(c.amount) || 0,
+          startYear: Number(c.startYear) || new Date().getFullYear(),
+          startMonth: Number(c.startMonth) || 0,
+          members: Array.isArray(c.members) ? c.members : [],
+          draw: Array.isArray(c.draw) ? c.draw : (c.draw || null),
+          payments: c.payments && typeof c.payments === "object" ? c.payments : {},
+          payoutDone: c.payoutDone && typeof c.payoutDone === "object" ? c.payoutDone : {}
+        };
+      });
+      state.activeId = data.activeId != null ? data.activeId : (state.committees.length ? state.committees[0].id : null);
+      state.activeMonth = typeof data.activeMonth === "number" ? data.activeMonth : 0;
+      state.showFull = !!data.showFull;
+      if (typeof data.uid === "number" && data.uid > 0) {
+        uid = data.uid;
+      } else {
+        var maxId = 0;
+        state.committees.forEach(function(c){
+          if (c.id > maxId) maxId = c.id;
+          c.members.forEach(function(m){ if (m.id > maxId) maxId = m.id; });
+        });
+        uid = maxId + 1;
+      }
+      var exists = false;
+      state.committees.forEach(function(c){ if (c.id === state.activeId) exists = true; });
+      if (!exists) state.activeId = state.committees.length ? state.committees[0].id : null;
+    } catch(e) {}
+  }
+  loadState();
+
+  function $(id){ return document.getElementById(id); }
+  function fmt(n){ return "Rs " + Number(n||0).toLocaleString("en-PK"); }
+  function monthLabel(c, idx){
+    var total = c.startMonth + idx;
+    return MONTHS[total % 12] + " " + (c.startYear + Math.floor(total/12));
+  }
+  function active(){ for (var i=0;i<state.committees.length;i++) if (state.committees[i].id===state.activeId) return state.committees[i]; return null; }
+  function pool(c){ return c.amount * c.members.length; }
+  function toast(msg){
+    var t = $("toast"); t.textContent = msg; t.classList.add("show");
+    clearTimeout(t._h); t._h = setTimeout(function(){ t.classList.remove("show"); }, 2400);
+  }
+  function initials(name){ return name.trim().split(/\s+/).slice(0,2).map(function(w){return w[0];}).join("").toUpperCase(); }
+
+  /* ---------- Create committee ---------- */
+  (function initStart(){
+    var d = new Date();
+    $("cStart").value = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
+  })();
+
+  $("createForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var name = $("cName").value.trim();
+    var amount = parseFloat($("cAmount").value);
+    var startVal = $("cStart").value;
+    if (!name || !(amount>0) || !startVal) { toast("Please fill the name, amount and first month."); return; }
+    var parts = startVal.split("-");
+    var c = { id: uid++, name: name, amount: amount,
+      startYear: parseInt(parts[0],10), startMonth: parseInt(parts[1],10)-1,
+      members: [], draw: null, payments: {}, payoutDone: {} };
+    state.committees.push(c);
+    state.activeId = c.id; state.activeMonth = 0; state.showFull = false;
+    $("cName").value=""; $("cAmount").value="";
+    toast("Qameti created. Now add members.");
+    render();
+  });
+
+  $("deleteCommittee").addEventListener("click", function(){
+    var c = active(); if(!c) return;
+    state.committees = state.committees.filter(function(x){ return x.id!==c.id; });
+    state.activeId = state.committees.length ? state.committees[0].id : null;
+    state.activeMonth = 0;
+    toast("Qameti deleted.");
+    render();
+  });
+
+  /* ---------- Members ---------- */
+  $("memberForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var c = active(); if(!c) return;
+    var name = $("mName").value.trim();
+    if (!name) return;
+    c.members.push({ id: uid++, name: name, phone: $("mPhone").value.trim() });
+    if (c.draw) { c.draw = null; c.payments = {}; c.payoutDone = {}; toast("Member added — please draw the numbers again."); }
+    else toast("Member added.");
+    $("mName").value=""; $("mPhone").value=""; $("mName").focus();
+    render();
+  });
+
+  function removeMember(id){
+    var c = active(); if(!c) return;
+    c.members = c.members.filter(function(m){ return m.id!==id; });
+    if (c.draw) { c.draw = null; c.payments = {}; c.payoutDone = {}; toast("Member removed — please draw the numbers again."); }
+    if (state.activeMonth >= c.members.length) state.activeMonth = Math.max(0, c.members.length-1);
+    render();
+  }
+
+  /* ---------- Draw ---------- */
+  function doDraw(){
+    var c = active(); if(!c || c.members.length < 2) return;
+    var ids = c.members.map(function(m){ return m.id; });
+    for (var i = ids.length-1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i+1));
+      var tmp = ids[i]; ids[i] = ids[j]; ids[j] = tmp;
+    }
+    c.draw = ids.map(function(id, idx){ return { memberId: id, number: idx+1, monthIndex: idx }; });
+    c.payments = {}; c.payoutDone = {};
+    state.activeMonth = 0; state.showFull = false;
+    toast("Numbers drawn. Months have been allotted automatically.");
+    render();
+  }
+  $("drawBtn").addEventListener("click", doDraw);
+  $("redrawBtn").addEventListener("click", function(){
+    toast("Re-drawing will clear all monthly entries for this qameti.");
+    doDraw();
+  });
+
+  /* ---------- Monthly entry ---------- */
+  $("monthSelect").addEventListener("change", function(){ state.activeMonth = parseInt(this.value,10); state.showFull=false; render(); });
+  $("prevMonth").addEventListener("click", function(){ if (state.activeMonth>0){ state.activeMonth--; state.showFull=false; render(); } });
+  $("nextMonth").addEventListener("click", function(){
+    var c = active(); if (c && state.activeMonth < c.members.length-1){ state.activeMonth++; state.showFull=false; render(); }
+  });
+  $("markAllBtn").addEventListener("click", function(){
+    var c = active(); if(!c) return;
+    var key = state.activeMonth;
+    if (!c.payments[key]) c.payments[key] = {};
+    c.members.forEach(function(m){ c.payments[key][m.id] = true; });
+    render();
+  });
+  $("payoutDone").addEventListener("change", function(){
+    var c = active(); if(!c) return;
+    c.payoutDone[state.activeMonth] = this.checked;
+    render();
+  });
+
+  /* ---------- Report ---------- */
+  function memberById(c, id){ for (var i=0;i<c.members.length;i++) if (c.members[i].id===id) return c.members[i]; return null; }
+  function recipient(c, monthIdx){
+    if (!c.draw) return null;
+    for (var i=0;i<c.draw.length;i++) if (c.draw[i].monthIndex===monthIdx) return memberById(c, c.draw[i].memberId);
+    return null;
+  }
+  function buildMonthlyReport(c, monthIdx){
+    var pays = c.payments[monthIdx] || {};
+    var paid = [], pending = [];
+    c.members.forEach(function(m){ (pays[m.id] ? paid : pending).push(m.name); });
+    var rec = recipient(c, monthIdx);
+    var lines = [];
+    lines.push("QAMETI MONTHLY REPORT");
+    lines.push("=====================");
+    lines.push("Qameti: " + c.name);
+    lines.push("Month: " + monthLabel(c, monthIdx) + "  (Month " + (monthIdx+1) + " of " + c.members.length + ")");
+    lines.push("Amount per member: " + fmt(c.amount));
+    lines.push("");
+    lines.push("PAYOUT");
+    lines.push("Receiver: " + (rec ? rec.name : "-"));
+    lines.push("Payout amount: " + fmt(pool(c)));
+    lines.push("Payout handed over: " + (c.payoutDone[monthIdx] ? "Yes" : "No"));
+    lines.push("");
+    lines.push("COLLECTION");
+    lines.push("Expected: " + fmt(pool(c)));
+    lines.push("Collected: " + fmt(paid.length * c.amount) + "  (" + paid.length + " of " + c.members.length + " members)");
+    lines.push("Pending: " + fmt(pending.length * c.amount));
+    lines.push("");
+    lines.push("PAID (" + paid.length + "):");
+    paid.forEach(function(n,i){ lines.push("  " + (i+1) + ". " + n); });
+    if (!paid.length) lines.push("  None yet");
+    lines.push("");
+    lines.push("PENDING (" + pending.length + "):");
+    pending.forEach(function(n,i){ lines.push("  " + (i+1) + ". " + n); });
+    if (!pending.length) lines.push("  None — everyone has paid");
+    return lines.join("\n");
+  }
+  function buildFullReport(c){
+    var lines = [];
+    lines.push("QAMETI FULL CYCLE REPORT");
+    lines.push("========================");
+    lines.push("Qameti: " + c.name);
+    lines.push("Members: " + c.members.length + "  |  Per month: " + fmt(c.amount) + "  |  Pool: " + fmt(pool(c)));
+    lines.push("Cycle: " + monthLabel(c,0) + " to " + monthLabel(c, c.members.length-1));
+    lines.push("");
+    lines.push("PAYOUT SCHEDULE");
+    c.draw.slice().sort(function(a,b){return a.number-b.number;}).forEach(function(d){
+      var m = memberById(c, d.memberId);
+      lines.push("  No. " + d.number + " — " + (m?m.name:"-") + " — " + monthLabel(c, d.monthIndex));
+    });
+    lines.push("");
+    lines.push("MONTH BY MONTH");
+    for (var i=0;i<c.members.length;i++){
+      var pays = c.payments[i] || {};
+      var cnt = c.members.filter(function(m){ return pays[m.id]; }).length;
+      var rec = recipient(c, i);
+      lines.push("  " + monthLabel(c,i) + ": collected " + fmt(cnt*c.amount) + " (" + cnt + "/" + c.members.length + " paid) — payout to " + (rec?rec.name:"-") + (c.payoutDone[i] ? " (handed over)" : ""));
+    }
+    return lines.join("\n");
+  }
+  function currentReport(){
+    var c = active(); if(!c || !c.draw) return "";
+    return state.showFull ? buildFullReport(c) : buildMonthlyReport(c, state.activeMonth);
+  }
+  $("fullReportBtn").addEventListener("click", function(){ state.showFull = !state.showFull; render(); });
+  $("copyReport").addEventListener("click", function(){
+    var text = currentReport(); if(!text) return;
+    function done(){ toast("Report copied — paste it anywhere, e.g. WhatsApp."); }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done, function(){ fallback(); });
+    } else fallback();
+    function fallback(){
+      var ta = document.createElement("textarea");
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); done(); } catch(e){ toast("Copy failed — select the report text manually."); }
+      document.body.removeChild(ta);
+    }
+  });
+  $("downloadReport").addEventListener("click", function(){
+    var c = active(); var text = currentReport(); if(!c || !text) return;
+    var blob = new Blob([text], { type: "text/plain" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = (state.showFull ? "qameti-full-report-" : "qameti-report-") + c.name.replace(/\s+/g,"-").toLowerCase() + ".txt";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 2000);
+    toast("Report downloaded.");
+  });
+
+  /* ---------- Render ---------- */
+  function render(){
+    saveState();
+    var c = active();
+    /* tabs */
+    var tabs = $("committeeTabs"); tabs.innerHTML = "";
+    state.committees.forEach(function(cm){
+      var b = document.createElement("button");
+      b.type="button"; b.className = "tab" + (cm.id===state.activeId ? " active" : "");
+      b.textContent = cm.name;
+      b.addEventListener("click", function(){ state.activeId = cm.id; state.activeMonth = 0; state.showFull=false; render(); });
+      tabs.appendChild(b);
+    });
+    $("noCommittee").style.display = c ? "none" : "block";
+    $("committeeStats").hidden = !c;
+    $("committeeActions").hidden = !c;
+    $("membersCard").hidden = !c;
+    $("drawCard").hidden = !c;
+    var hasDraw = !!(c && c.draw);
+    $("entryCard").hidden = !hasDraw;
+    $("reportCard").hidden = !hasDraw;
+    if (!c) return;
+
+    $("stMembers").textContent = c.members.length;
+    $("stAmount").textContent = fmt(c.amount);
+    $("stPool").textContent = fmt(pool(c));
+    $("stCycle").textContent = c.members.length ? (c.members.length + " months") : "—";
+    $("memberCount").textContent = c.members.length + (c.members.length===1 ? " member" : " members") + " added";
+
+    /* member list */
+    var list = $("memberList"); list.innerHTML = "";
+    c.members.forEach(function(m, idx){
+      var li = document.createElement("li");
+      var av = document.createElement("span"); av.className="avatar"; av.textContent = initials(m.name);
+      var info = document.createElement("span");
+      var nm = document.createElement("span"); nm.className="mname"; nm.textContent = (idx+1) + ". " + m.name;
+      info.appendChild(nm);
+      if (m.phone){ var ph = document.createElement("span"); ph.className="mphone"; ph.textContent = " · " + m.phone; info.appendChild(ph); }
+      var sp = document.createElement("span"); sp.className="spacer";
+      var del = document.createElement("button"); del.className="iconbtn"; del.type="button"; del.textContent="✕"; del.setAttribute("aria-label","Remove " + m.name);
+      del.addEventListener("click", function(){ removeMember(m.id); });
+      li.appendChild(av); li.appendChild(info); li.appendChild(sp); li.appendChild(del);
+      list.appendChild(li);
+    });
+    $("noMembers").style.display = c.members.length ? "none" : "block";
+
+    /* draw */
+    $("drawBtn").disabled = c.members.length < 2;
+    $("drawBtn").textContent = hasDraw ? "Draw Numbers" : "Draw Numbers";
+    $("redrawBtn").hidden = !hasDraw;
+    $("noDraw").style.display = hasDraw ? "none" : "block";
+    $("noDraw").textContent = c.members.length < 2 ? "Add at least 2 members, then press “Draw Numbers”." : "Ready — press “Draw Numbers” and months will be allotted automatically.";
+    $("scheduleWrap").hidden = !hasDraw;
+    if (hasDraw){
+      var body = $("scheduleBody"); body.innerHTML = "";
+      c.draw.slice().sort(function(a,b){return a.number-b.number;}).forEach(function(d){
+        var m = memberById(c, d.memberId);
+        var tr = document.createElement("tr");
+        if (d.monthIndex === state.activeMonth) tr.className = "turn";
+        tr.innerHTML = "";
+        var td1 = document.createElement("td"); var n = document.createElement("span"); n.className="num"; n.textContent = d.number; td1.appendChild(n);
+        var td2 = document.createElement("td"); td2.textContent = m ? m.name : "-"; td2.style.fontWeight = "650";
+        var td3 = document.createElement("td"); td3.textContent = monthLabel(c, d.monthIndex);
+        var td4 = document.createElement("td"); td4.textContent = fmt(pool(c));
+        tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tr.appendChild(td4);
+        body.appendChild(tr);
+      });
+    }
+
+    /* monthly entry */
+    if (hasDraw){
+      if (state.activeMonth >= c.members.length) state.activeMonth = 0;
+      var sel = $("monthSelect"); sel.innerHTML = "";
+      for (var i=0;i<c.members.length;i++){
+        var opt = document.createElement("option");
+        opt.value = i; opt.textContent = "Month " + (i+1) + " — " + monthLabel(c, i);
+        sel.appendChild(opt);
+      }
+      sel.value = state.activeMonth;
+      $("prevMonth").disabled = state.activeMonth===0;
+      $("nextMonth").disabled = state.activeMonth===c.members.length-1;
+      var rec = recipient(c, state.activeMonth);
+      $("payoutBanner").innerHTML = "";
+      var bTxt = document.createElement("span");
+      bTxt.innerHTML = "Payout this month goes to <b></b> — " + fmt(pool(c)) + " (Number " + (state.activeMonth+1) + ")";
+      bTxt.querySelector("b").textContent = rec ? rec.name : "-";
+      $("payoutBanner").appendChild(bTxt);
+      $("payoutDone").checked = !!c.payoutDone[state.activeMonth];
+
+      var pays = c.payments[state.activeMonth] || {};
+      var el = $("entryList"); el.innerHTML = "";
+      var paidCount = 0;
+      c.members.forEach(function(m){
+        var isPaid = !!pays[m.id]; if (isPaid) paidCount++;
+        var li = document.createElement("li");
+        var av = document.createElement("span"); av.className="avatar"; av.textContent = initials(m.name);
+        var info = document.createElement("span");
+        var nm = document.createElement("span"); nm.className="mname"; nm.textContent = m.name;
+        info.appendChild(nm);
+        if (rec && rec.id===m.id){ var pill = document.createElement("span"); pill.className="pill payout"; pill.textContent=" Receives payout"; pill.style.marginLeft="8px"; info.appendChild(pill); }
+        var sp = document.createElement("span"); sp.className="spacer";
+        var tg = document.createElement("button");
+        tg.type="button"; tg.className = "toggle" + (isPaid ? " paid" : "");
+        tg.textContent = isPaid ? "✓ Paid" : "Pending";
+        (function(mid){
+          tg.addEventListener("click", function(){
+            var cc = active(); if(!cc) return;
+            if (!cc.payments[state.activeMonth]) cc.payments[state.activeMonth] = {};
+            cc.payments[state.activeMonth][mid] = !cc.payments[state.activeMonth][mid];
+            render();
+          });
+        })(m.id);
+        li.appendChild(av); li.appendChild(info); li.appendChild(sp); li.appendChild(tg);
+        el.appendChild(li);
+      });
+      $("enExpected").textContent = fmt(pool(c));
+      $("enCollected").textContent = fmt(paidCount * c.amount);
+      $("enPending").textContent = fmt((c.members.length - paidCount) * c.amount);
+      $("enCount").textContent = paidCount + " / " + c.members.length;
+
+      $("reportText").textContent = currentReport();
+      $("fullReportBtn").textContent = state.showFull ? "Monthly Report" : "Full Cycle Report";
+    }
+    saveState();
+  }
+  render();
+})();
+</script>
+</body>
+</html>
