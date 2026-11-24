@@ -91,6 +91,10 @@
   .pill.paid{background:var(--accent-soft);color:var(--paid)}
   .pill.pend{background:var(--gold-soft);color:var(--pending)}
   .pill.payout{background:var(--gold-soft);color:var(--gold)}
+  .pill.creator{background:var(--accent);color:var(--accent-ink)}
+  .pill.locked{background:var(--surface2);color:var(--muted);border:1px solid var(--line)}
+  .creatorbar{background:var(--accent-soft);border:1px solid var(--accent);border-radius:12px;padding:12px 15px;margin-top:14px;font-size:15px}
+  .creatorbar b{color:var(--accent)}
   .toggle{border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:700;font-size:14px;padding:7px 16px;cursor:pointer;min-height:40px;min-width:104px}
   .toggle.paid{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
   .banner{background:var(--gold-soft);border:1px solid var(--gold);border-radius:12px;padding:13px 15px;margin-top:14px;font-size:15px}
@@ -115,12 +119,12 @@
 <div class="wrap">
 
   <h1>Qameti System</h1>
-  <p class="lede">Run a savings committee (qameti / ROSCA) without paperwork. Add your members, let the system draw numbers and allot each member a payout month automatically, record the monthly entries, and get a clean report for every month.</p>
+  <p class="lede">Run a savings committee (qameti / ROSCA) without paperwork. Name the creator at the start — the creator is locked to Number 1 and always receives the first month's payout. Add the other members, let the system draw the remaining numbers and allot each member a payout month automatically, record the monthly entries, and get a clean report for every month.</p>
 
   <div class="how">
-    <div><b>Step 1</b><span>Create a qameti and set the monthly amount.</span></div>
-    <div><b>Step 2</b><span>Add all members who will take part.</span></div>
-    <div><b>Step 3</b><span>Draw numbers — months are allotted automatically.</span></div>
+    <div><b>Step 1</b><span>Create a qameti, name the creator and set the monthly amount.</span></div>
+    <div><b>Step 2</b><span>Creator is added first. Add all other members who will take part.</span></div>
+    <div><b>Step 3</b><span>Draw numbers — creator stays at No. 1, the rest are shuffled fairly.</span></div>
     <div><b>Step 4</b><span>Mark monthly entries and generate the report.</span></div>
   </div>
 
@@ -130,10 +134,19 @@
       <div>
         <span class="step"><i>1</i> Create a Qameti</span>
         <h2 id="h-create" style="margin-top:6px">Committee setup</h2>
-        <p class="sub">One qameti = one full cycle. If you add 10 members, the cycle runs for 10 months and every member receives the full pool once.</p>
+        <p class="sub">One qameti = one full cycle. If you add 10 members, the cycle runs for 10 months and every member receives the full pool once. As per the usual rule in Pakistan, the first qameti always goes to the creator — so the creator is locked to Number 1 and the first month.</p>
       </div>
     </div>
-    <form id="createForm" class="grid c3">
+    <form id="createForm" class="grid c2">
+      <div>
+        <label for="cCreator">Creator name *</label>
+        <input id="cCreator" type="text" placeholder="e.g. Muhammad Muzammil Shah" required maxlength="60" />
+        <p class="note" style="margin-top:6px">The creator is added as the first member and locked to No. 1 — first month's payout.</p>
+      </div>
+      <div>
+        <label for="cCreatorPhone">Creator phone (optional)</label>
+        <input id="cCreatorPhone" type="tel" placeholder="e.g. 03xx xxxxxxx" maxlength="20" />
+      </div>
       <div>
         <label for="cName">Qameti name</label>
         <input id="cName" type="text" placeholder="e.g. Office Friends Qameti" required maxlength="60" />
@@ -150,6 +163,7 @@
         <button class="btn" type="submit">Create Qameti</button>
       </div>
     </form>
+    <div id="creatorInfo" class="creatorbar" hidden></div>
     <div id="committeeTabs" class="tabs" aria-label="Your qametis"></div>
     <div id="noCommittee" class="empty">No qameti yet. Create your first one above to get started.</div>
     <div id="committeeStats" class="stats" hidden>
@@ -169,7 +183,7 @@
       <div>
         <span class="step"><i>2</i> Members</span>
         <h2 id="h-members" style="margin-top:6px">Add members</h2>
-        <p class="sub">Add everyone taking part before the draw. Phone numbers are optional and only help you follow up.</p>
+        <p class="sub">The creator is already added below and locked to Number 1 — the creator cannot be removed or moved. Add everyone else taking part before the draw. Phone numbers are optional and only help you follow up.</p>
       </div>
     </div>
     <form id="memberForm" class="grid c2">
@@ -196,7 +210,7 @@
       <div>
         <span class="step"><i>3</i> Number Draw</span>
         <h2 id="h-draw" style="margin-top:6px">Draw numbers &amp; allot months</h2>
-        <p class="sub">The system shuffles all members fairly and assigns numbers 1, 2, 3… Number 1 receives the payout in the first month, number 2 in the second month, and so on.</p>
+        <p class="sub">The creator stays locked at Number 1 and receives the payout in the first month. The system shuffles only the other members fairly and assigns them numbers 2, 3, 4… — number 2 receives the payout in the second month, and so on. A re-draw also keeps the creator at No. 1.</p>
       </div>
       <div class="row">
         <button class="btn" id="drawBtn" type="button">Draw Numbers</button>
@@ -209,7 +223,7 @@
         <thead><tr><th>Number</th><th>Member</th><th>Payout month</th><th>Payout amount</th></tr></thead>
         <tbody id="scheduleBody"></tbody>
       </table>
-      <p class="note">Every member pays every month. In each month, one member — whose number comes up — receives the full pool.</p>
+      <p class="note">Every member pays every month. In each month, one member — whose number comes up — receives the full pool. Number 1 is always the creator, locked to the first month.</p>
     </div>
   </section>
 
@@ -290,13 +304,27 @@
       var data = JSON.parse(raw);
       if (!data || !Array.isArray(data.committees)) return;
       state.committees = data.committees.map(function(c){
+        var members = Array.isArray(c.members) ? c.members.map(function(m){
+          return { id: m.id, name: m.name || "", phone: m.phone || "", isCreator: !!m.isCreator };
+        }) : [];
+        var creatorId = c.creatorId != null ? c.creatorId : null;
+        var creatorName = c.creatorName || "";
+        /* Backfill creator from member flags for older saves */
+        if (creatorId == null) {
+          for (var i=0;i<members.length;i++){ if (members[i].isCreator){ creatorId = members[i].id; creatorName = members[i].name; break; } }
+        }
+        if (creatorId != null && !creatorName) {
+          for (var j=0;j<members.length;j++){ if (members[j].id===creatorId){ creatorName = members[j].name; members[j].isCreator = true; break; } }
+        }
         return {
           id: c.id,
           name: c.name || "",
+          creatorName: creatorName,
+          creatorId: creatorId,
           amount: Number(c.amount) || 0,
           startYear: Number(c.startYear) || new Date().getFullYear(),
           startMonth: Number(c.startMonth) || 0,
-          members: Array.isArray(c.members) ? c.members : [],
+          members: members,
           draw: Array.isArray(c.draw) ? c.draw : (c.draw || null),
           payments: c.payments && typeof c.payments === "object" ? c.payments : {},
           payoutDone: c.payoutDone && typeof c.payoutDone === "object" ? c.payoutDone : {}
@@ -344,18 +372,22 @@
 
   $("createForm").addEventListener("submit", function(e){
     e.preventDefault();
+    var creatorName = $("cCreator").value.trim();
+    var creatorPhone = $("cCreatorPhone").value.trim();
     var name = $("cName").value.trim();
     var amount = parseFloat($("cAmount").value);
     var startVal = $("cStart").value;
-    if (!name || !(amount>0) || !startVal) { toast("Please fill the name, amount and first month."); return; }
+    if (!creatorName) { toast("Please enter the creator's name."); $("cCreator").focus(); return; }
+    if (!name || !(amount>0) || !startVal) { toast("Please fill the qameti name, amount and first month."); return; }
     var parts = startVal.split("-");
-    var c = { id: uid++, name: name, amount: amount,
+    var creatorMember = { id: uid++, name: creatorName, phone: creatorPhone, isCreator: true };
+    var c = { id: uid++, name: name, creatorName: creatorName, creatorId: creatorMember.id, amount: amount,
       startYear: parseInt(parts[0],10), startMonth: parseInt(parts[1],10)-1,
-      members: [], draw: null, payments: {}, payoutDone: {} };
+      members: [creatorMember], draw: null, payments: {}, payoutDone: {} };
     state.committees.push(c);
     state.activeId = c.id; state.activeMonth = 0; state.showFull = false;
-    $("cName").value=""; $("cAmount").value="";
-    toast("Qameti created. Now add members.");
+    $("cCreator").value=""; $("cCreatorPhone").value=""; $("cName").value=""; $("cAmount").value="";
+    toast("Qameti created. " + creatorName + " (Creator) is locked to No. 1 — first month. Now add the other members.");
     render();
   });
 
@@ -374,15 +406,22 @@
     var c = active(); if(!c) return;
     var name = $("mName").value.trim();
     if (!name) return;
-    c.members.push({ id: uid++, name: name, phone: $("mPhone").value.trim() });
+    c.members.push({ id: uid++, name: name, phone: $("mPhone").value.trim(), isCreator: false });
     if (c.draw) { c.draw = null; c.payments = {}; c.payoutDone = {}; toast("Member added — please draw the numbers again."); }
     else toast("Member added.");
     $("mName").value=""; $("mPhone").value=""; $("mName").focus();
     render();
   });
 
+  function isCreator(c, m){ return !!(m && (m.isCreator || (c.creatorId != null && m.id===c.creatorId))); }
+  function creatorMember(c){ if(!c) return null; for (var i=0;i<c.members.length;i++) if (isCreator(c, c.members[i])) return c.members[i]; return null; }
+  function displayName(c, m){ if(!m) return "-"; return m.name + (isCreator(c, m) ? " (Creator)" : ""); }
+
   function removeMember(id){
     var c = active(); if(!c) return;
+    var target = null;
+    c.members.forEach(function(m){ if (m.id===id) target = m; });
+    if (target && isCreator(c, target)) { toast("The creator is locked to No. 1 and cannot be removed."); return; }
     c.members = c.members.filter(function(m){ return m.id!==id; });
     if (c.draw) { c.draw = null; c.payments = {}; c.payoutDone = {}; toast("Member removed — please draw the numbers again."); }
     if (state.activeMonth >= c.members.length) state.activeMonth = Math.max(0, c.members.length-1);
@@ -392,15 +431,27 @@
   /* ---------- Draw ---------- */
   function doDraw(){
     var c = active(); if(!c || c.members.length < 2) return;
-    var ids = c.members.map(function(m){ return m.id; });
-    for (var i = ids.length-1; i > 0; i--){
-      var j = Math.floor(Math.random() * (i+1));
-      var tmp = ids[i]; ids[i] = ids[j]; ids[j] = tmp;
+    var creator = creatorMember(c);
+    if (creator) {
+      var others = c.members.filter(function(m){ return m.id !== creator.id; }).map(function(m){ return m.id; });
+      for (var i = others.length-1; i > 0; i--){
+        var j = Math.floor(Math.random() * (i+1));
+        var tmp = others[i]; others[i] = others[j]; others[j] = tmp;
+      }
+      c.draw = [{ memberId: creator.id, number: 1, monthIndex: 0 }].concat(
+        others.map(function(id, idx){ return { memberId: id, number: idx+2, monthIndex: idx+1 }; })
+      );
+    } else {
+      var ids = c.members.map(function(m){ return m.id; });
+      for (var k = ids.length-1; k > 0; k--){
+        var j2 = Math.floor(Math.random() * (k+1));
+        var tmp2 = ids[k]; ids[k] = ids[j2]; ids[j2] = tmp2;
+      }
+      c.draw = ids.map(function(id, idx){ return { memberId: id, number: idx+1, monthIndex: idx }; });
     }
-    c.draw = ids.map(function(id, idx){ return { memberId: id, number: idx+1, monthIndex: idx }; });
     c.payments = {}; c.payoutDone = {};
     state.activeMonth = 0; state.showFull = false;
-    toast("Numbers drawn. Months have been allotted automatically.");
+    toast(creator ? "Numbers drawn. Creator stays at No. 1 — other months allotted automatically." : "Numbers drawn. Months have been allotted automatically.");
     render();
   }
   $("drawBtn").addEventListener("click", doDraw);
@@ -438,17 +489,20 @@
   function buildMonthlyReport(c, monthIdx){
     var pays = c.payments[monthIdx] || {};
     var paid = [], pending = [];
-    c.members.forEach(function(m){ (pays[m.id] ? paid : pending).push(m.name); });
+    c.members.forEach(function(m){ (pays[m.id] ? paid : pending).push(displayName(c, m)); });
     var rec = recipient(c, monthIdx);
+    var creator = creatorMember(c);
     var lines = [];
     lines.push("QAMETI MONTHLY REPORT");
     lines.push("=====================");
     lines.push("Qameti: " + c.name);
+    if (creator) lines.push("Creator: " + creator.name + " (Creator — No. 1, payout: " + monthLabel(c, 0) + ")");
+    else if (c.creatorName) lines.push("Creator: " + c.creatorName);
     lines.push("Month: " + monthLabel(c, monthIdx) + "  (Month " + (monthIdx+1) + " of " + c.members.length + ")");
     lines.push("Amount per member: " + fmt(c.amount));
     lines.push("");
     lines.push("PAYOUT");
-    lines.push("Receiver: " + (rec ? rec.name : "-"));
+    lines.push("Receiver: " + (rec ? displayName(c, rec) : "-"));
     lines.push("Payout amount: " + fmt(pool(c)));
     lines.push("Payout handed over: " + (c.payoutDone[monthIdx] ? "Yes" : "No"));
     lines.push("");
@@ -468,16 +522,19 @@
   }
   function buildFullReport(c){
     var lines = [];
+    var creator = creatorMember(c);
     lines.push("QAMETI FULL CYCLE REPORT");
     lines.push("========================");
     lines.push("Qameti: " + c.name);
+    if (creator) lines.push("Creator: " + creator.name + " (Creator — No. 1, payout: " + monthLabel(c, 0) + ")");
+    else if (c.creatorName) lines.push("Creator: " + c.creatorName);
     lines.push("Members: " + c.members.length + "  |  Per month: " + fmt(c.amount) + "  |  Pool: " + fmt(pool(c)));
     lines.push("Cycle: " + monthLabel(c,0) + " to " + monthLabel(c, c.members.length-1));
     lines.push("");
     lines.push("PAYOUT SCHEDULE");
     c.draw.slice().sort(function(a,b){return a.number-b.number;}).forEach(function(d){
       var m = memberById(c, d.memberId);
-      lines.push("  No. " + d.number + " — " + (m?m.name:"-") + " — " + monthLabel(c, d.monthIndex));
+      lines.push("  No. " + d.number + " — " + (m?displayName(c, m):"-") + " — " + monthLabel(c, d.monthIndex));
     });
     lines.push("");
     lines.push("MONTH BY MONTH");
@@ -485,7 +542,7 @@
       var pays = c.payments[i] || {};
       var cnt = c.members.filter(function(m){ return pays[m.id]; }).length;
       var rec = recipient(c, i);
-      lines.push("  " + monthLabel(c,i) + ": collected " + fmt(cnt*c.amount) + " (" + cnt + "/" + c.members.length + " paid) — payout to " + (rec?rec.name:"-") + (c.payoutDone[i] ? " (handed over)" : ""));
+      lines.push("  " + monthLabel(c,i) + ": collected " + fmt(cnt*c.amount) + " (" + cnt + "/" + c.members.length + " paid) — payout to " + (rec?displayName(c, rec):"-") + (c.payoutDone[i] ? " (handed over)" : ""));
     }
     return lines.join("\n");
   }
@@ -532,6 +589,7 @@
       tabs.appendChild(b);
     });
     $("noCommittee").style.display = c ? "none" : "block";
+    if (!c) $("creatorInfo").hidden = true;
     $("committeeStats").hidden = !c;
     $("committeeActions").hidden = !c;
     $("membersCard").hidden = !c;
@@ -546,20 +604,51 @@
     $("stPool").textContent = fmt(pool(c));
     $("stCycle").textContent = c.members.length ? (c.members.length + " months") : "—";
     $("memberCount").textContent = c.members.length + (c.members.length===1 ? " member" : " members") + " added";
+    var creatorForInfo = creatorMember(c);
+    var ci = $("creatorInfo");
+    if (creatorForInfo) {
+      ci.hidden = false;
+      ci.innerHTML = "";
+      var ciSpan = document.createElement("span");
+      ciSpan.innerHTML = "Creator: <b></b> — locked to <b>Number 1</b>, payout in the first month (" + monthLabel(c, 0) + "). This slot never changes, even on a re-draw.";
+      ciSpan.querySelector("b").textContent = creatorForInfo.name;
+      ci.appendChild(ciSpan);
+    } else if (c.creatorName) {
+      ci.hidden = false;
+      ci.textContent = "Creator: " + c.creatorName + " — locked to Number 1, payout in the first month (" + monthLabel(c, 0) + ").";
+    } else {
+      ci.hidden = true;
+    }
 
-    /* member list */
+    /* member list — creator always first */
+    var orderedMembers = c.members.slice();
+    orderedMembers.sort(function(a,b){
+      var ac = isCreator(c, a) ? 0 : 1, bc = isCreator(c, b) ? 0 : 1;
+      return ac - bc;
+    });
     var list = $("memberList"); list.innerHTML = "";
-    c.members.forEach(function(m, idx){
+    orderedMembers.forEach(function(m, idx){
+      var creatorFlag = isCreator(c, m);
       var li = document.createElement("li");
+      if (creatorFlag) li.style.borderColor = "var(--accent)";
       var av = document.createElement("span"); av.className="avatar"; av.textContent = initials(m.name);
       var info = document.createElement("span");
       var nm = document.createElement("span"); nm.className="mname"; nm.textContent = (idx+1) + ". " + m.name;
       info.appendChild(nm);
+      if (creatorFlag){
+        var cpill = document.createElement("span"); cpill.className="pill creator"; cpill.textContent="Creator"; cpill.style.marginLeft="8px"; info.appendChild(cpill);
+        var lpill = document.createElement("span"); lpill.className="pill locked"; lpill.textContent="🔒 No. 1 · " + monthLabel(c, 0); lpill.style.marginLeft="6px"; info.appendChild(lpill);
+      }
       if (m.phone){ var ph = document.createElement("span"); ph.className="mphone"; ph.textContent = " · " + m.phone; info.appendChild(ph); }
       var sp = document.createElement("span"); sp.className="spacer";
-      var del = document.createElement("button"); del.className="iconbtn"; del.type="button"; del.textContent="✕"; del.setAttribute("aria-label","Remove " + m.name);
-      del.addEventListener("click", function(){ removeMember(m.id); });
-      li.appendChild(av); li.appendChild(info); li.appendChild(sp); li.appendChild(del);
+      li.appendChild(av); li.appendChild(info); li.appendChild(sp);
+      if (!creatorFlag) {
+        var del = document.createElement("button"); del.className="iconbtn"; del.type="button"; del.textContent="✕"; del.setAttribute("aria-label","Remove " + m.name);
+        del.addEventListener("click", function(){ removeMember(m.id); });
+        li.appendChild(del);
+      } else {
+        var lockNote = document.createElement("span"); lockNote.className="mphone"; lockNote.textContent="Locked — cannot be removed"; li.appendChild(lockNote);
+      }
       list.appendChild(li);
     });
     $("noMembers").style.display = c.members.length ? "none" : "block";
@@ -569,7 +658,7 @@
     $("drawBtn").textContent = hasDraw ? "Draw Numbers" : "Draw Numbers";
     $("redrawBtn").hidden = !hasDraw;
     $("noDraw").style.display = hasDraw ? "none" : "block";
-    $("noDraw").textContent = c.members.length < 2 ? "Add at least 2 members, then press “Draw Numbers”." : "Ready — press “Draw Numbers” and months will be allotted automatically.";
+    $("noDraw").textContent = c.members.length < 2 ? "Add at least 1 more member (creator is already in), then press “Draw Numbers”." : "Ready — press “Draw Numbers”. The creator stays at No. 1 and the other months will be allotted automatically.";
     $("scheduleWrap").hidden = !hasDraw;
     if (hasDraw){
       var body = $("scheduleBody"); body.innerHTML = "";
@@ -579,7 +668,9 @@
         if (d.monthIndex === state.activeMonth) tr.className = "turn";
         tr.innerHTML = "";
         var td1 = document.createElement("td"); var n = document.createElement("span"); n.className="num"; n.textContent = d.number; td1.appendChild(n);
-        var td2 = document.createElement("td"); td2.textContent = m ? m.name : "-"; td2.style.fontWeight = "650";
+        var td2 = document.createElement("td"); td2.style.fontWeight = "650";
+        var td2name = document.createElement("span"); td2name.textContent = m ? m.name : "-"; td2.appendChild(td2name);
+        if (m && isCreator(c, m)){ var sp2 = document.createElement("span"); sp2.className="pill creator"; sp2.textContent="Creator"; sp2.style.marginLeft="8px"; td2.appendChild(sp2); var lk = document.createElement("span"); lk.className="pill locked"; lk.textContent="🔒 Locked"; lk.style.marginLeft="6px"; td2.appendChild(lk); }
         var td3 = document.createElement("td"); td3.textContent = monthLabel(c, d.monthIndex);
         var td4 = document.createElement("td"); td4.textContent = fmt(pool(c));
         tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tr.appendChild(td4);
@@ -602,7 +693,7 @@
       var rec = recipient(c, state.activeMonth);
       $("payoutBanner").innerHTML = "";
       var bTxt = document.createElement("span");
-      bTxt.innerHTML = "Payout this month goes to <b></b> — " + fmt(pool(c)) + " (Number " + (state.activeMonth+1) + ")";
+      bTxt.innerHTML = "Payout this month goes to <b></b>" + (rec && isCreator(c, rec) ? " (Creator)" : "") + " — " + fmt(pool(c)) + " (Number " + (state.activeMonth+1) + ")";
       bTxt.querySelector("b").textContent = rec ? rec.name : "-";
       $("payoutBanner").appendChild(bTxt);
       $("payoutDone").checked = !!c.payoutDone[state.activeMonth];
@@ -617,6 +708,7 @@
         var info = document.createElement("span");
         var nm = document.createElement("span"); nm.className="mname"; nm.textContent = m.name;
         info.appendChild(nm);
+        if (isCreator(c, m)){ var cp = document.createElement("span"); cp.className="pill creator"; cp.textContent="Creator"; cp.style.marginLeft="8px"; info.appendChild(cp); }
         if (rec && rec.id===m.id){ var pill = document.createElement("span"); pill.className="pill payout"; pill.textContent=" Receives payout"; pill.style.marginLeft="8px"; info.appendChild(pill); }
         var sp = document.createElement("span"); sp.className="spacer";
         var tg = document.createElement("button");
